@@ -33,6 +33,60 @@ HOST=127.0.0.1 MCP_AUTH_MODE=demo MCP_APP=examples.ouigo_server:build_app uv run
 Connect an MCP client to `http://localhost:8080/mcp`.
 `make run-ouigo` starts the same factory in the default GitHub OAuth mode; see [GitHub OAuth](#github-oauth).
 
+### Use over stdio
+
+Local agents and desktop clients can start the server as a private stdio child process instead of connecting over HTTP.
+The process opens no network port, so it runs without the GitHub OAuth provider.
+
+Install the runtime dependencies once:
+
+```bash
+git clone https://github.com/5queezer/ouigo_mcp_server.git
+cd ouigo_mcp_server
+uv sync --frozen --no-dev
+```
+
+Configure the client to run the project's Python from the checkout directory.
+Replace `/path/to/ouigo_mcp_server` with the absolute path of your checkout.
+For clients that use the common `mcpServers` JSON format, such as Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "ouigo": {
+      "command": "/path/to/ouigo_mcp_server/.venv/bin/python",
+      "args": [
+        "-c",
+        "from examples.ouigo_server import _new_server; _new_server(None).run(transport='stdio', show_banner=False)"
+      ],
+      "cwd": "/path/to/ouigo_mcp_server"
+    }
+  }
+}
+```
+
+For [Hermes Agent](https://github.com/NousResearch/hermes-agent), add an entry under `mcp_servers` in its `config.yaml`:
+
+```yaml
+mcp_servers:
+  ouigo:
+    command: /path/to/ouigo_mcp_server/.venv/bin/python
+    args:
+      - -c
+      - "from examples.ouigo_server import _new_server; _new_server(None).run(transport='stdio', show_banner=False)"
+    cwd: /path/to/ouigo_mcp_server
+    enabled: true
+    timeout: 120
+    tools:
+      include:
+        - find_station
+        - search_trains
+        - get_price_calendar
+```
+
+The command must run with the checkout as its working directory so Python can import `examples`.
+`_new_server` is the factory's internal helper; check this command when you update to a new revision.
+
 ### OUIGO API access
 
 The server logs in to OUIGO's web API with the web shop's own client credentials.
@@ -50,6 +104,7 @@ GitHub OAuth is the default. Anonymous access requires `MCP_AUTH_MODE=demo`.
 ## On this page
 
 - [OUIGO server](#ouigo-server)
+  - [Use over stdio](#use-over-stdio)
 - [Requirements](#requirements)
 - [Local quick start](#local-quick-start)
 - [GitHub OAuth](#github-oauth)
