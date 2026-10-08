@@ -1,6 +1,45 @@
-# mcp-oauth-template
+# ouigo_mcp_server
 
-Build a remote [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server with Python, FastMCP, and GitHub OAuth.
+A remote [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server for [OUIGO Spain](https://www.ouigo.com/es/) high-speed trains.
+It looks up stations, lists trains with fares for a day, and shows the lowest fare per day over a date range.
+The tools are read-only and never book tickets.
+
+**This is an unofficial client.** OUIGO does not publish an API. The server calls the undocumented JSON API behind OUIGO's web shop, which can change or stop working without notice.
+
+The server is built on [mcp-oauth-template](https://github.com/5queezer/mcp-oauth-template), which provides the Python, FastMCP, and GitHub OAuth foundation described in the rest of this README.
+
+## OUIGO server
+
+### Tools
+
+| Tool | Purpose |
+| --- | --- |
+| `find_station(query)` | Find stations by name, synonym, or short code. Ignores case and accents. |
+| `search_trains(origin, destination, date, adults=1)` | List trains for one day with departure and arrival times, duration, base fare, and fare package prices |
+| `get_price_calendar(origin, destination, start_date, end_date, adults=1)` | Return the lowest fare per day for up to 62 days. The price is `null` when no train runs. |
+
+`origin` and `destination` accept a station code or an unambiguous name. `Madrid` resolves to `MT1`, which covers all Madrid stations.
+Dates use `YYYY-MM-DD`. Searches support 1 to 9 adult passengers, and prices are in euros for the whole party.
+
+### Run the OUIGO server locally
+
+**Demo mode has no application authentication. Use it only on a trusted network.**
+
+```bash
+uv sync --frozen --group dev
+HOST=127.0.0.1 MCP_AUTH_MODE=demo MCP_APP=examples.ouigo_server:build_app uv run python -m mcp_server
+```
+
+Connect an MCP client to `http://localhost:8080/mcp`.
+`make run-ouigo` starts the same factory in the default GitHub OAuth mode; see [GitHub OAuth](#github-oauth).
+
+### OUIGO API access
+
+The server logs in to OUIGO's web API with the web shop's own client credentials.
+`OUIGO_API_USERNAME` and `OUIGO_API_PASSWORD` override them if OUIGO changes them.
+The server caches the API token and the station list in memory and logs in again when the token expires.
+
+## About the template
 
 This template keeps authentication policy in one place and uses FastMCP's maintained [GitHub OAuth provider](https://gofastmcp.com/integrations/github).
 The container runs the application factory you select.
@@ -10,6 +49,7 @@ GitHub OAuth is the default. Anonymous access requires `MCP_AUTH_MODE=demo`.
 
 ## On this page
 
+- [OUIGO server](#ouigo-server)
 - [Requirements](#requirements)
 - [Local quick start](#local-quick-start)
 - [GitHub OAuth](#github-oauth)
@@ -40,8 +80,8 @@ CI installs the lockfile with `--frozen` and uv 0.12.23.
 ### 1. Install the project
 
 ```bash
-git clone https://github.com/5queezer/mcp-oauth-template.git
-cd mcp-oauth-template
+git clone https://github.com/5queezer/ouigo_mcp_server.git
+cd ouigo_mcp_server
 uv sync --frozen --group dev
 ```
 
@@ -184,6 +224,7 @@ The GitHub example requires GitHub mode. The other examples can use demo mode fo
 | `GITHUB_CLIENT_SECRET` | GitHub mode | GitHub OAuth app client secret |
 | `GITHUB_ALLOWED_USER_IDS` | GitHub mode | Comma-separated positive numeric GitHub IDs |
 | `MCP_APP` | No | `module:factory`. Defaults to `examples.echo_server:build_app`. |
+| `OUIGO_API_USERNAME`, `OUIGO_API_PASSWORD` | No | Override the OUIGO web API client credentials used by the OUIGO server |
 | `FASTMCP_HOME` | No | Directory for FastMCP's encrypted OAuth state |
 | `HOST`, `PORT`, `LOG_LEVEL` | No | Uvicorn process settings |
 
