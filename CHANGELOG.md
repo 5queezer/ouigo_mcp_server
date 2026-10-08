@@ -4,6 +4,10 @@ This project records user-visible changes in this file.
 
 ## Unreleased
 
+### Added
+
+- Add a read-only OUIGO Spain example with station lookup, train search, and a daily fare calendar.
+
 ### Security
 
 - Update locked PyJWT to 2.15.1 and urllib3 to 2.8.0 to resolve `pip-audit` advisories against 2.13.0 and 2.7.0.

@@ -170,6 +170,7 @@ Keep custom factories in one of these packages. For another package, add a copy 
 | `examples.echo_server:build_app` | Deterministic echo smoke test. Container default. |
 | `examples.github_oauth_server:build_app` | Caller identity and public GitHub data with the caller's credential |
 | `examples.polymarket_server:build_app` | Read-only Polymarket event and market search |
+| `examples.ouigo_server:build_app` | Read-only OUIGO Spain stations, trains, and fares (unofficial web API) |
 
 The GitHub example requires GitHub mode. The other examples can use demo mode for local testing.
 
