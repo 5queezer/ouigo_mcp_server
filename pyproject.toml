@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=84,<85"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-oauth-template"
+version = "0.3.1"
+description = "A Python MCP template with GitHub OAuth, explicit access policy, and HTTP deployment"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12,<3.15"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "fastmcp>=4.0.3,<5",
+    "httpx>=0.28.1,<0.29",
+    "mcp>=2.2.0,<3",
+    "pydantic>=2.13.5,<3",
+    "py-key-value-aio>=0.4.5,<0.5",
+    "python-multipart>=0.0.32,<0.1",
+    "starlette>=1.6.0,<2",
+    "uvicorn[standard]>=0.52.4,<1",
+]
+
+[project.urls]
+Repository = "https://github.com/5queezer/mcp-oauth-template"
+Issues = "https://github.com/5queezer/mcp-oauth-template/issues"
+Changelog = "https://github.com/5queezer/mcp-oauth-template/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+    "httpx2==2.12.0",
+    "pytest>=9.1.1,<10",
+    "ruff==0.16.7",
+    "ty==0.0.80",
+    "pip-audit>=2.10.1,<3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mcp_server*", "examples*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--import-mode=importlib"
+filterwarnings = [
+    "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning:starlette.testclient",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
+
+[tool.ty.environment]
+python-version = "3.12"
