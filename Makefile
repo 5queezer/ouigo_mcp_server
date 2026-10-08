@@ -1,4 +1,4 @@
-.PHONY: install sync test lint format-check typecheck audit check run run-github run-polymarket docker-build docker-smoke deploy
+.PHONY: install sync test lint format-check typecheck audit check run run-github run-polymarket run-ouigo docker-build docker-smoke deploy
 
 SERVICE_NAME ?= mcp-oauth-service
 REGION ?= europe-west1
@@ -34,6 +34,9 @@ run-github:
 
 run-polymarket:
 	MCP_APP=examples.polymarket_server:build_app uv run python -m mcp_server
+
+run-ouigo:
+	MCP_APP=examples.ouigo_server:build_app uv run python -m mcp_server
 
 docker-build:
 	docker build --tag $(IMAGE) .
