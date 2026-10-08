@@ -11,6 +11,7 @@ configuration documented by the project.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import unicodedata
 from collections.abc import Mapping
@@ -149,6 +150,16 @@ class OuigoTools:
     def __init__(self) -> None:
         self._token: str | None = None
         self._stations: list[Mapping[str, Any]] | None = None
+        self._login_lock = asyncio.Lock()
+
+    async def _replace_token(self, client: httpx.AsyncClient, stale: str | None) -> str:
+        # Concurrent calls holding the same stale (or missing) token share one
+        # login; later callers reuse the token the first one obtained.
+        async with self._login_lock:
+            token = self._token
+            if token is None or token == stale:
+                token = self._token = await _login(client)
+            return token
 
     async def _call(self, method: str, path: str, body: dict[str, Any] | None = None) -> Any:
         async with httpx.AsyncClient(
@@ -156,16 +167,15 @@ class OuigoTools:
             headers=OUIGO_HEADERS,
             timeout=REQUEST_TIMEOUT_SECONDS,
         ) as client:
-            if self._token is None:
-                self._token = await _login(client)
+            token = self._token or await self._replace_token(client, None)
             for attempt in range(2):
                 response = await client.request(
-                    method, path, json=body, headers={"Authorization": f"Bearer {self._token}"}
+                    method, path, json=body, headers={"Authorization": f"Bearer {token}"}
                 )
                 # The token expires server-side; log in again once and retry.
                 if response.status_code != 401 or attempt:
                     break
-                self._token = await _login(client)
+                token = await self._replace_token(client, token)
             response.raise_for_status()
             return response.json()
 

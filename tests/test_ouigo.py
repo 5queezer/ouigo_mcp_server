@@ -87,8 +87,10 @@ class FakeOuigo:
         self.requests: list[httpx.Request] = []
         self.logins = 0
 
-    def __call__(self, request: httpx.Request) -> httpx.Response:
+    async def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
+        # Yield like real network I/O so concurrent tool calls interleave.
+        await asyncio.sleep(0)
         path = request.url.path.removeprefix("/api")
         if path == "/Token/login":
             self.logins += 1
@@ -187,6 +189,46 @@ def test_repeated_unauthorized_responses_are_raised(monkeypatch: pytest.MonkeyPa
         )
     assert backend.logins == 2
     assert len(backend.bodies("/Calendar/prices")) == 2
+
+
+def test_concurrent_calls_share_one_login(monkeypatch: pytest.MonkeyPatch) -> None:
+    backend = _use_fake_ouigo(monkeypatch, {"/Sale/journeysearch": _search_response([])})
+    tools = ouigo_server.OuigoTools()
+
+    async def run() -> None:
+        await asyncio.gather(
+            tools.search_trains("MT1", "BAR", "2026-10-14"),
+            tools.search_trains("MT1", "BAR", "2026-10-15"),
+        )
+
+    asyncio.run(run())
+
+    assert backend.logins == 1
+
+
+def test_concurrent_unauthorized_responses_share_one_relogin(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def search(request: httpx.Request) -> httpx.Response:
+        if request.headers["Authorization"] == "Bearer stale":
+            return httpx.Response(401)
+        return httpx.Response(200, json={"outbound": [], "error": None})
+
+    backend = _use_fake_ouigo(monkeypatch, {"/Sale/journeysearch": search})
+    tools = ouigo_server.OuigoTools()
+    tools._token = "stale"
+
+    async def run() -> None:
+        await asyncio.gather(
+            tools.search_trains("MT1", "BAR", "2026-10-14"),
+            tools.search_trains("MT1", "BAR", "2026-10-15"),
+        )
+
+    asyncio.run(run())
+
+    assert backend.logins == 1
+    searches = [r for r in backend.requests if r.url.path == "/api/Sale/journeysearch"]
+    assert [r.headers["Authorization"] for r in searches].count("Bearer token-1") == 2
 
 
 def test_find_station_ignores_case_and_accents(monkeypatch: pytest.MonkeyPatch) -> None:
